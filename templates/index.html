@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Expense Tracker</h1>
+
+        <!-- Input Fields -->
+        <div class="input-container">
+            <label for="name">Name:</label>
+            <input type="text" id="name">
+        </div>
+        <div class="input-container">
+            <label for="category">Category:</label>
+            <select id="category">
+                <option value="Food">Food</option>
+                <option value="Home">Home</option>
+                <option value="Work">Work</option>
+                <option value="Travel">Travel</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <div class="input-container">
+            <label for="amount">Amount:</label>
+            <input type="number" id="amount">
+        </div>
+        <div class="input-container">
+            <label for="date">Date:</label>
+            <input type="date" id="date">
+        </div>
+
+        <!-- Buttons -->
+        <button id="save-button" onclick="saveExpense()">Save Expense</button>
+        <button id="view-button" onclick="viewExpenses()">View All Expenses</button>
+
+        <!-- Status and Expense Display -->
+        <div id="status"></div>
+        <div id="expenses"></div>
+    </div>
+
+    <script src="/eel.js"></script>
+    <script>
+        // Function to handle saving the expense
+        async function saveExpense() {
+            const name = document.getElementById("name").value;
+            const category = document.getElementById("category").value;
+            const amount = document.getElementById("amount").value;
+            const date = document.getElementById("date").value;
+
+            // Validate inputs
+            if (!name || !category || !amount || !date) {
+                document.getElementById("status").textContent = "Please fill in all fields.";
+                return;
+            }
+
+            // Call the Python function to save the expense
+            const statusMessage = await eel.save_expense_to_file(name, category, amount, date)();
+
+            // Display the status message
+            document.getElementById("status").textContent = statusMessage;
+        }
+
+        // Function to view all expenses
+        async function viewExpenses() {
+            const expenses = await eel.get_all_expenses()();
+            
+            // Display expenses in a table
+            let expensesHTML = "<h2>All Expenses</h2><table><tr><th>Name</th><th>Category</th><th>Amount</th><th>Date</th></tr>";
+            if (expenses.length > 0) {
+                expenses.forEach(expense => {
+                    expensesHTML += `<tr><td>${expense.name}</td><td>${expense.category}</td><td>${expense.amount}</td><td>${expense.date}</td></tr>`;
+                });
+            } else {
+                expensesHTML += "<tr><td colspan='4'>No expenses found.</td></tr>";
+            }
+            expensesHTML += "</table>";
+            
+            document.getElementById("expenses").innerHTML = expensesHTML;
+        }
+    </script>
+</body>
+</html>
