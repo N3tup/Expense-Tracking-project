@@ -1,3 +1,4 @@
+import panda
 import os
 from error_management import file_error, input_error, date_error
 from expence import Expense
@@ -5,7 +6,6 @@ import pandas as pd
 import tkinter as tk
 from tkinter import messagebox
 from datetime import datetime
-import eel
 
 
 
@@ -20,16 +20,27 @@ expense_categories = [
 def main():
     print(f'🪄 running expense tracker of Romain')
     expense_file_path = "expenses.csv"
-    
-    # TODO: Get user input for expense 
-    expense = get_user_expense()
-    # TODO: put it in to a file
-    save_user_expense_to_file(expense, expense_file_path)
-    print(f'saving user expense: {expense}')
-    # TODO: Read file and summarize expences
-    #read_expenses_from_file(expense_file_path) 
 
+    # Chose what the user want to do
+    try:
+        user_choice = int(input("What do you want to do?\n1. Add an expense\n2. View expenses\n3. Generate chart\n"))
+        if user_choice == 1:
+            print("Adding an expense...")
+        elif user_choice == 2:
+            print("Viewing expenses...")
+            read_expenses_from_file()
+        elif user_choice == 3:
+            print("Generating chart...")
+            # TODO: Faire plus de chart utiles
+            selected_chart = panda.chart_choser()
+            print(f"chosed chart: {selected_chart}")
+            panda.execute_chart(selected_chart)
+            # get the png and show it
 
+        else:
+            print("Invalid choice. Please select 1, 2, or 3.")
+    except ValueError:
+        input_error("Invalid input. Please enter a number.")
     pass
 
 
@@ -123,8 +134,10 @@ def save_user_expense_to_file(expense: Expense,expense_file_path):
     
 
 def read_expenses_from_file():
-    print (f'Here are your expenses !')
-    
+    expense_file_path = "expenses.csv"
+    df = pd.read_csv(expense_file_path)
+    print(df)
+
 
 if __name__ == "__main__":
     main()
