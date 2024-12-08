@@ -1,0 +1,178 @@
+<!-- favorite_chart.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .chart-container {
+            position: relative;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .future-chart {
+            margin-top: 50px;
+        }
+
+        .future-chart-placeholder {
+            border: 2px dashed #ced4da;
+            border-radius: 10px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+        }
+
+        .form-section {
+            margin-top: 20px;
+        }
+
+        .error-message {
+            margin-top: 20px;
+        }
+
+        .header-title {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #343a40;
+        }
+
+        .btn-custom {
+            background-color: #343a40;
+            color: #ffffff;
+        }
+
+        .btn-custom:hover {
+            background-color: #495057;
+            color: #ffffff;
+        }
+
+        /* Uniform chart styling */
+        .chart-img-wrapper {
+            width: 100%;
+            height: 300px; /* Fixed height for all charts */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .chart-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Ensure the entire image fits without distortion */
+        }
+
+        .chart-title {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #495057;
+        }
+    </style>
+    <title>Favorite Expenses Chart</title>
+</head>
+<body>
+    <div class="container">
+        <h1 class="header-title">📊 Your Favorite Expenses</h1>
+
+        <!-- Form Section -->
+        <div class="chart-container">
+            <form method="GET" action="{% url 'fav_chart' %}" class="row g-3">
+                <div class="col-md-5 form-section">
+                    <label for="start_date" class="form-label">🗓 Start Date:</label>
+                    <input type="date" id="start_date" name="start_date" value="{{ start_date }}" class="form-control" required>
+                </div>
+                <div class="col-md-5 form-section">
+                    <label for="end_date" class="form-label">🗓 End Date:</label>
+                    <input type="date" id="end_date" name="end_date" value="{{ end_date }}" class="form-control" required>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-custom w-100">Generate Charts</button>
+                </div>
+            </form>
+
+            <!-- Error Message -->
+            {% if error_message %}
+                <div class="alert alert-danger error-message" role="alert">
+                    <strong>Error:</strong> {{ error_message }}
+                </div>
+            {% endif %}
+
+            <!-- Charts Section -->
+            <div class="row mt-4">
+                {% if chart_images.pie %}
+                <div class="col-lg-6 col-md-6 mb-4">
+                    <div class="text-center">
+                        <div class="chart-img-wrapper">
+                            <img src="{% static chart_images.pie %}" alt="Pie Chart" class="chart-img">
+                        </div>
+                        <div class="chart-title">📍 Pie Chart: Expenses by Category</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if chart_images.bar %}
+                <div class="col-lg-6 col-md-6 mb-4">
+                    <div class="text-center">
+                        <div class="chart-img-wrapper">
+                            <img src="{% static chart_images.bar %}" alt="Bar Chart" class="chart-img">
+                        </div>
+                        <div class="chart-title">📊 Bar Chart: Expenses by Category</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if chart_images.line %}
+                <div class="col-lg-6 col-md-6 mb-4">
+                    <div class="text-center">
+                        <div class="chart-img-wrapper">
+                            <img src="{% static chart_images.line %}" alt="Line Chart" class="chart-img">
+                        </div>
+                        <div class="chart-title">📈 Line Chart: Daily Expenses</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if chart_images.donut %}
+                <div class="col-lg-6 col-md-6 mb-4">
+                    <div class="text-center">
+                        <div class="chart-img-wrapper">
+                            <img src="{% static chart_images.donut %}" alt="Donut Chart" class="chart-img">
+                        </div>
+                        <div class="chart-title">🍩 Donut Chart: Expenses by Category</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Future Charts Section -->
+        <div class="future-chart">
+            <h2 class="text-center text-muted">✨ Coming Soon: More Insights!</h2>
+            <div class="future-chart-placeholder">
+                <p>Additional charts and analytics will be featured here.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS (Optional, for interactive components) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+{% endblock %}
