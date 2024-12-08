@@ -1,0 +1,13 @@
+<!-- delete_expense_confirm.html -->
+
+{% extends 'base.html' %}
+{% block content %}
+<h2>Confirm Deletion</h2>
+<p>Are you sure you want to delete the expense: <strong>{{ expense.name }}</strong>?</p>
+
+<form method="POST">
+    {% csrf_token %}
+    <button type="submit">Yes, Delete</button>
+    <a href="{% url 'view_expenses' %}">Cancel</a>
+</form>
+{% endblock %}

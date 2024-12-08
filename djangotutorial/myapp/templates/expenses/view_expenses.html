@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>All Expenses</h1>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for expense in expenses %}
+        <tr>
+            <td>{{ expense.name }}</td>
+            <td>{{ expense.category }}</td>
+            <td>{{ expense.amount }}</td>
+            <td>{{ expense.date }}</td>
+            <td>
+                <form method="POST" action="{% url 'delete_expense' expense.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this expense?');">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<a href="{% url 'add_expense' %}" class="btn btn-primary">Add Expense</a>
+{% endblock %}

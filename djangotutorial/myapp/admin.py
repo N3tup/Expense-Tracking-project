@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import TodoItem
+from .models import Expense
 
-# Register your models here.
-admin.site.register(TodoItem)
+@admin.register(Expense)
+class ExpenseAdmin(admin.ModelAdmin):
+    list_display = ('name', 'category', 'amount', 'date')
+    list_filter = ('category', 'date')
+    search_fields = ('name', 'category')

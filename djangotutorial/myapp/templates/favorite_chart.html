@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<h1>Favorite Expenses Chart</h1>
+<form method="GET" action="{% url 'fav_chart' %}">
+    <div>
+        <label for="start_date">Start Date:</label>
+        <input type="date" id="start_date" name="start_date" required>
+    </div>
+    <div>
+        <label for="end_date">End Date:</label>
+        <input type="date" id="end_date" name="end_date" required>
+    </div>
+    <button type="submit">Generate Chart</button>
+</form>
+<div style="width: 500px; height: 400px; margin-top: 20px;">
+    <!-- Display the chart image -->
+    {% if chart_image %}
+        <img src="{% static chart_image %}" alt="Pie Chart">
+    {% endif %}
+</div>
+{% endblock %}
