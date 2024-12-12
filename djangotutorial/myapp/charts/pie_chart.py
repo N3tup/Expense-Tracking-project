@@ -1,9 +1,22 @@
 # charts/pie_chart.py
-
-import pandas as pd
+import os
+from django.core.files.storage import FileSystemStorage
+from django.http import HttpResponse
+from django.conf import settings
+from django.utils import timezone
+import time
 import matplotlib
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
+import pandas as pd
 matplotlib.use('Agg')  # Use the Agg backend for non-GUI environments
+
+# Custom cleanup function
+def clean_up_old_files():
+    chart_dir = os.path.join(settings.BASE_DIR, 'static/images')
+    for filename in os.listdir(chart_dir):
+        file_path = os.path.join(chart_dir, filename)
+        if os.path.getmtime(file_path) < time.time() - 3600:  # 1 hour old
+            os.remove(file_path)
 
 
 def generate_pie_chart(expenses, start_date, end_date, output_path):

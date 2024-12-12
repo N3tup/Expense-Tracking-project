@@ -13,6 +13,8 @@ from .models import Expense
 
 import os
 import uuid
+import time
+
 
 
 
@@ -84,21 +86,25 @@ def favorite_chart(request):
             # Generate Pie Chart
             pie_output = os.path.join(output_dir, f'pie_chart_{unique_id}.png')
             generate_pie_chart(expenses, start_date, end_date, pie_output)
+            clean_up_old_files()
             chart_images['pie'] = f'images/pie_chart_{unique_id}.png'
 
             # Generate Bar Chart
             bar_output = os.path.join(output_dir, f'bar_chart_{unique_id}.png')
             generate_bar_chart(expenses, start_date, end_date, bar_output)
+            clean_up_old_files()
             chart_images['bar'] = f'images/bar_chart_{unique_id}.png'
 
             # Generate Line Chart
             line_output = os.path.join(output_dir, f'line_chart_{unique_id}.png')
             generate_line_chart(expenses, start_date, end_date, line_output)
+            clean_up_old_files()
             chart_images['line'] = f'images/line_chart_{unique_id}.png'
 
             # Generate Donut Chart
             donut_output = os.path.join(output_dir, f'donut_chart_{unique_id}.png')
             generate_donut_chart(expenses, start_date, end_date, donut_output)
+            clean_up_old_files()
             chart_images['donut'] = f'images/donut_chart_{unique_id}.png'
 
         except Exception as e:
@@ -117,3 +123,11 @@ def delete_expense(request, expense_id):
     expense = get_object_or_404(Expense, id=expense_id)
     expense.delete()
     return redirect('view_expenses')
+
+
+def clean_up_old_files():
+    chart_dir = os.path.join(settings.BASE_DIR, 'static/images')
+    for filename in os.listdir(chart_dir):
+        file_path = os.path.join(chart_dir, filename)
+        if os.path.getmtime(file_path) < time.time() - 600:  # 10 min old
+            os.remove(file_path)
