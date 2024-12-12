@@ -1,20 +1,12 @@
-from django.shortcuts import render, redirect
-from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Expense
-from datetime import datetime,timedelta
-from .charts.pie_chart import (
-    generate_pie_chart,
-    generate_bar_chart,
-    generate_line_chart,
-    generate_donut_chart
-)
-from .models import Expense
-
+from datetime import datetime
+from .charts.pie_chart import generate_pie_chart
+import base64
+import io
 import os
-import uuid
+from django.conf import settings
 import time
-
 
 
 
@@ -46,16 +38,13 @@ def add_expense(request):
 def about(request):
     return render(request, "about.html")
 
-
 def favorite_chart(request):
-    # Get the start and end dates from the GET parameters
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 
     chart_images = {}
     error_message = None
 
-    # Set default date range to the current month if not provided
     if not start_date or not end_date:
         today = datetime.today()
         start_date_obj = today.replace(day=1)
@@ -64,7 +53,6 @@ def favorite_chart(request):
         end_date = end_date_obj.strftime("%Y-%m-%d")
     else:
         try:
-            # Convert date strings to datetime objects
             start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
             end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
         except ValueError as e:
@@ -73,39 +61,12 @@ def favorite_chart(request):
 
     if start_date and end_date:
         try:
-            # Query the Expense model for the specified date range
             expenses = Expense.objects.filter(date__gte=start_date_obj, date__lte=end_date_obj)
 
-            # Define the output directory
-            output_dir = os.path.join(settings.BASE_DIR, 'static', 'images')
-            os.makedirs(output_dir, exist_ok=True)
-
-            # Generate unique filenames for each chart to prevent caching issues
-            unique_id = uuid.uuid4().hex  # Generates a unique hexadecimal string
-
-            # Generate Pie Chart
-            pie_output = os.path.join(output_dir, f'pie_chart_{unique_id}.png')
-            generate_pie_chart(expenses, start_date, end_date, pie_output)
-            clean_up_old_files()
-            chart_images['pie'] = f'images/pie_chart_{unique_id}.png'
-
-            # Generate Bar Chart
-            bar_output = os.path.join(output_dir, f'bar_chart_{unique_id}.png')
-            generate_bar_chart(expenses, start_date, end_date, bar_output)
-            clean_up_old_files()
-            chart_images['bar'] = f'images/bar_chart_{unique_id}.png'
-
-            # Generate Line Chart
-            line_output = os.path.join(output_dir, f'line_chart_{unique_id}.png')
-            generate_line_chart(expenses, start_date, end_date, line_output)
-            clean_up_old_files()
-            chart_images['line'] = f'images/line_chart_{unique_id}.png'
-
-            # Generate Donut Chart
-            donut_output = os.path.join(output_dir, f'donut_chart_{unique_id}.png')
-            generate_donut_chart(expenses, start_date, end_date, donut_output)
-            clean_up_old_files()
-            chart_images['donut'] = f'images/donut_chart_{unique_id}.png'
+            chart_images['pie'] = generate_chart_image(generate_pie_chart, expenses, start_date, end_date)
+            #chart_images['bar'] = generate_chart_image(generate_bar_chart, expenses, start_date, end_date)
+            #chart_images['line'] = generate_chart_image(generate_line_chart, expenses, start_date, end_date)
+            #chart_images['donut'] = generate_chart_image(generate_donut_chart, expenses, start_date, end_date)
 
         except Exception as e:
             error_message = f"An error occurred while generating the charts: {e}"
@@ -119,15 +80,21 @@ def favorite_chart(request):
 
     return render(request, "favorite_chart.html", context)
 
+def generate_chart_image(chart_function, expenses, start_date, end_date):
+    img_buffer = io.BytesIO()
+    chart_function(expenses, start_date, end_date, img_buffer)
+    img_buffer.seek(0)
+    img_base64 = base64.b64encode(img_buffer.read()).decode('utf-8')
+    return f"data:image/png;base64,{img_base64}"
+
 def delete_expense(request, expense_id):
     expense = get_object_or_404(Expense, id=expense_id)
     expense.delete()
     return redirect('view_expenses')
 
-
 def clean_up_old_files():
     chart_dir = os.path.join(settings.BASE_DIR, 'static/images')
     for filename in os.listdir(chart_dir):
         file_path = os.path.join(chart_dir, filename)
-        if os.path.getmtime(file_path) < time.time() - 600:  # 10 min old
+        if os.path.getmtime(file_path) < time.time() - 600:  # 10 minutes old
             os.remove(file_path)
