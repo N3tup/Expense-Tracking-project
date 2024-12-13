@@ -1,16 +1,18 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.conf import settings
 from .models import Expense
-from datetime import datetime
+from .models import Income
+
 from .charts.pie_chart import generate_pie_chart
 import base64
 import io
 import os
-from django.conf import settings
 import time
+from datetime import datetime
+
 from .OCR.OCR import extract_ticket_info
 from PIL import Image
-import numpy as np
-from .models import Expense
+
 
 
 
@@ -18,6 +20,7 @@ def home(request):
     return render(request, "home.html")
 
 def add_expense(request):
+    expense_categories = ["Food", "Housing", "Transportation", "Utilities", "Entertainment", "Travel", "Shopping", "Other"]
     if request.method == "POST":
         photo = request.FILES.get("photo")
 
@@ -73,7 +76,7 @@ def add_expense(request):
             return render(request, "expenses/add_expense.html", {"error": f"An error occurred while processing the photo: {str(e)}"})
 
     # Render the form initially if the method is GET
-    return render(request, "expenses/add_expense.html")
+    return render(request, "expenses/add_expense.html", {"expense_categories": expense_categories})
 
 
 
@@ -145,3 +148,50 @@ def clean_up_old_files():
 def view_expenses(request):
     expenses = Expense.objects.all()  # Fetch all expenses or customize as needed
     return render(request, 'expenses/view_expenses.html', {'expenses': expenses})
+
+def view_incomes(request):
+    incomes = Income.objects.all()  # Fetch all income records
+    return render(request, "incomes/view_incomes.html", {"incomes": incomes})
+
+def add_income(request):
+    expense_categories = ["Salary", "Business", "Investment", "Gift", "Other"]  # Replace with your actual categories
+
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        category = request.POST.get("income_categories", "other").capitalize()
+        amount = request.POST.get("amount", "").strip()
+        date = request.POST.get("date", "").strip()
+
+        error = None
+
+        # Validate amount
+        try:
+            amount = float(amount)
+        except ValueError:
+            error = "Amount must be a valid number."
+
+        # Validate date or 'today'
+        try:
+            date = datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            error = error or "Date must be in YYYY-MM-DD format."
+
+        # If no errors, save income to the database
+        if not error:
+            Income.objects.create(name=name, category=category, amount=amount, date=date)
+            return redirect("view_incomes")  # Redirect to incomes list after success
+
+        # Return the form with the error message if validation fails
+        return render(
+            request, 
+            "incomes/add_income.html", 
+            {"error": error, "name": name, "amount": amount, "date": date, "expense_categories": expense_categories}
+        )
+
+    # Render the form initially with categories
+    return render(request, "incomes/add_income.html", {"expense_categories": expense_categories})
+
+def delete_income(request, income_id):
+    income = get_object_or_404(Income, id=income_id)
+    income.delete()
+    return redirect('view_incomes')
