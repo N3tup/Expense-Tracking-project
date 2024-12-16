@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<!-- Alerts Section -->
+{% if alerts %}
+  <div class="alerts">
+    {% for alert in alerts %}
+      <p class="alert alert-warning">{{ alert }}</p>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<h2>Budget for {{ current_month }} {{ current_year }}</h2>
+
+<!-- Filter Button -->
+<button class="btn btn-outline-secondary btn-sm mb-3" onclick="toggleSortingControls()">Filter</button>
+
+<!-- Sorting Controls -->
+<div id="sorting-controls" class="sorting-controls card p-3" style="display: none;">
+  <div class="form-group">
+    <label for="sort-by">Sort by:</label>
+    <select id="sort-by" class="form-control">
+      <option value="category">Category</option>
+      <option value="limit">Limit</option>
+      <option value="spent">Spent</option>
+      <option value="usage">Usage (%)</option>
+    </select>
+  </div>
+  <div class="btn-group" role="group" aria-label="Sorting order">
+    <button class="btn btn-outline-secondary btn-sm" onclick="sortTableAsc()">Ascend</button>
+    <button class="btn btn-outline-secondary btn-sm" onclick="sortTableDesc()">Descend</button>
+  </div>
+</div>
+
+<!-- Budgets Section -->
+<h3>Your Budgets</h3>
+{% if budgets %}
+  <table id="budget-table" class="table table-striped">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Limit</th>
+        <th>Spent</th>
+        <th>Usage (%)</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for budget in budgets %}
+        <tr class="{% if budget.percentage_used >= 80 %}table-danger{% elif budget.percentage_used >= 50 %}table-warning{% else %}table-success{% endif %}">
+          <td>{{ budget.category }}</td>
+          <td>{{ budget.limit|floatformat:2 }} €</td>
+          <td>{{ budget.spent|floatformat:2 }} €</td>
+          <td>
+            <div class="d-flex justify-content-between align-items-center">
+              <span>{{ budget.percentage_used|floatformat:2 }}%</span>
+              <div class="progress flex-grow-1 ml-2">
+                <div
+                  class="progress-bar {% if budget.percentage_used >= 80 %}bg-danger{% elif budget.percentage_used >= 50 %}bg-warning{% else %}bg-success{% endif %}"
+                  role="progressbar"
+                  style="width: {{ budget.percentage_used|floatformat:2 }}%;"
+                  aria-valuenow="{{ budget.percentage_used|floatformat:2 }}"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
+                </div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <form method="POST" action="{% url 'delete_budget' budget.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <div class="alert alert-warning" role="alert">
+    <p>No budgets set for this month. <a href="{% url 'set_budget' %}" class="alert-link">Set a budget now</a>.</p>
+  </div>
+{% endif %}
+
+{% if categories_without_budgets %}
+  <p>No budgets set for the following categories this month: {{ categories_without_budgets|join:", " }}. <a href="{% url 'set_budget' %}">Set a budget now</a>.</p>
+{% endif %}
+
+<!-- Expenses Section -->
+<h3>Your Expenses</h3>
+{% if expenses %}
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Spent</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for expense in expenses %}
+        <tr>
+          <td>{{ expense.category }}</td>
+          <td>{{ expense.total|floatformat:2 }} €</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No expenses recorded for this month.</p>
+{% endif %}
+
+<script>
+function toggleSortingControls() {
+  const sortingControls = document.getElementById("sorting-controls");
+  if (sortingControls.style.display === "none") {
+    sortingControls.style.display = "block";
+  } else {
+    sortingControls.style.display = "none";
+  }
+}
+
+function sortTable(order = 'asc') {
+  const table = document.getElementById("budget-table");
+  const rows = Array.from(table.rows).slice(1);
+  const sortBy = document.getElementById("sort-by").value;
+  const columnIndex = {
+    "category": 0,
+    "limit": 1,
+    "spent": 2,
+    "usage": 3
+  }[sortBy];
+
+  rows.sort((a, b) => {
+    const cellA = a.cells[columnIndex].innerText.toLowerCase().replace(' €', '').replace('%', '');
+    const cellB = b.cells[columnIndex].innerText.toLowerCase().replace(' €', '').replace('%', '');
+    let comparison = 0;
+
+    if (sortBy === "category") {
+      comparison = cellA.localeCompare(cellB);
+    } else {
+      comparison = parseFloat(cellA) - parseFloat(cellB);
+    }
+
+    return order === 'asc' ? comparison : -comparison;
+  });
+
+  rows.forEach(row => table.appendChild(row));
+}
+
+function sortTableAsc() {
+  sortTable('asc');
+}
+
+function sortTableDesc() {
+  sortTable('desc');
+}
+
+function formatNumber(num, isPercentage = false) {
+  let formattedNum = parseFloat(num).toFixed(2).replace(/\.?0+$/, ''); // Remove trailing zeros
+  if (isPercentage) {
+    return formattedNum + '%';
+  }
+  return formattedNum + ' €';
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  const rows = document.querySelectorAll('#budget-table tr');
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    cells.forEach((cell, index) => {
+      // Only format the numeric content in the "Limit" and "Spent" columns (index 1 and 2)
+      if (index === 1 || index === 2) {
+        const numberContent = cell.querySelector('span') || cell;
+        if (numberContent) {
+          const num = parseFloat(numberContent.innerText.replace(' €', ''));
+          if (!isNaN(num)) {
+            numberContent.innerText = formatNumber(num, false);
+          }
+        }
+      }
+      
+      // Check for numeric content inside the percentage column (index 3) for formatting
+      if (index === 3) {
+        const numberContent = cell.querySelector('span');
+        if (numberContent) {
+          const num = parseFloat(numberContent.innerText.replace('%', ''));
+          if (!isNaN(num)) {
+            numberContent.innerText = formatNumber(num, true);
+          }
+        }
+      }
+    });
+  });
+});
+
+
+
+
+
+</script>
+
+{% endblock %}

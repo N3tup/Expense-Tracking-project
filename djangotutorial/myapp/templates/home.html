@@ -8,11 +8,25 @@
         <p class="lead">Effortlessly manage your expenses, track spending, and achieve your financial goals.</p>
         <hr class="my-4">
         <p>Start exploring our features:</p>
-        <div class="d-flex justify-content-center mt-4">
-            <a href="{% url 'add_expense' %}" class="btn btn-primary btn-lg mx-2">Add an Expense</a>
-            <a href="{% url 'view_expenses' %}" class="btn btn-success btn-lg mx-2">View Expenses</a>
-            <a href="{% url 'fav_chart' %}" class="btn btn-info btn-lg mx-2">View Favorite Chart</a>
-            <a href="{% url 'view_incomes' %}" class="btn btn-primary btn-lg mx-2">View Incomes</a>
+        <div class="d-flex flex-wrap justify-content-center mt-4">
+            <a href="{% url 'add_expense' %}" class="btn btn-primary btn-lg mx-2 my-2">
+                <i class="fas fa-plus-circle"></i> Add an Expense
+            </a>
+            <a href="{% url 'view_expenses' %}" class="btn btn-success btn-lg mx-2 my-2">
+                <i class="fas fa-list"></i> View Expenses
+            </a>
+            <a href="{% url 'fav_chart' %}" class="btn btn-info btn-lg mx-2 my-2">
+                <i class="fas fa-chart-pie"></i> View Favorite Chart
+            </a>
+            <a href="{% url 'view_incomes' %}" class="btn btn-primary btn-lg mx-2 my-2">
+                <i class="fas fa-dollar-sign"></i> View Incomes
+            </a>
+            <a href="{% url 'dashboard' %}" class="btn btn-success btn-lg mx-2 my-2">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </a>
+            <a href="{% url 'set_budget' %}" class="btn btn-warning btn-lg mx-2 my-2">
+                <i class="fas fa-wallet"></i> Set Budget
+            </a>
         </div>
     </div>
 </div>

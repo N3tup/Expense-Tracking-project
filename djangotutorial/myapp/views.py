@@ -1,9 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
-from .models import Expense
+from django.contrib import messages
+from datetime import date
+from django.db.models import Sum
+
+from .models import Expense, Budget
 from .models import Income
 
-from .charts.pie_chart import generate_pie_chart
+from .charts.pie_chart import generate_pie_chart, generate_bar_chart
 import base64
 import io
 import os
@@ -23,57 +27,56 @@ def add_expense(request):
     expense_categories = ["Food", "Housing", "Transportation", "Utilities", "Entertainment", "Travel", "Shopping", "Other"]
     if request.method == "POST":
         photo = request.FILES.get("photo")
+        name = request.POST.get("name")
+        category = request.POST.get("expense_category")
+        amount = request.POST.get("amount")
+        expense_date = request.POST.get("date")
 
-        if not photo:
-            return render(request, "expenses/add_expense.html", {"error": "Photo is required for automatic extraction."})
-
-        # Read the image in memory without saving it
-        try:
-            # Process the image directly from the uploaded file
-            img = Image.open(photo)  # Open the image from the in-memory file
-            img.save(r"C:\Users\romai\Documents\.1_ Romain\2_Esiea\PROJET\TODO\expense_project\djangotutorial\media\expense_photos/temp_image.jpg")  # Temporarily save it to a memory location if needed, optional
-
-            # Process the photo with OCR
+        if photo:
             try:
-                # Pass the image directly to the OCR function
-                extracted_data = extract_ticket_info(img)
-                print(f"Extracted Data: {extracted_data}")
+                # Process the image directly from the uploaded file
+                img = Image.open(photo)
+                img.save(r"C:\Users\romai\Documents\.1_ Romain\2_Esiea\PROJET\TODO\expense_project\djangotutorial\media\expense_photos/temp_image.jpg")
 
-                if extracted_data is None:
-                    return render(request, "expenses/add_expense.html", {"error": "Could not extract any data from the ticket."})
+                # Process the photo with OCR
+                try:
+                    extracted_data = extract_ticket_info(img)
+                    if extracted_data is None:
+                        return render(request, "expenses/add_expense.html", {"error": "Could not extract any data from the ticket."})
 
-                # Mapping extracted data to variables
-                name = extracted_data.get("location", "Unknown Location")  # Use 'location' as the name by default
-                category = extracted_data.get("category", "Other")  # Default category
-                amount = extracted_data.get("amount")
-                date = extracted_data.get("date")
+                    # Mapping extracted data to variables
+                    name = extracted_data.get("location", name)  # Use 'location' as the name by default
+                    category = extracted_data.get("category", category)  # Default category
+                    amount = extracted_data.get("amount", amount)
+                    expense_date = extracted_data.get("date", expense_date)
 
-                # Validate critical fields before saving
-                if not amount or not date:
-                    error_message = (
-                        f"Could not extract all required information from the ticket. "
-                        f"Extracted data: {extracted_data}"
-                    )
-                    return render(request, "expenses/add_expense.html", {"error": error_message})
+                    # Validate critical fields before saving
+                    if not amount or not expense_date:
+                        error_message = (
+                            f"Could not extract all required information from the ticket. "
+                            f"Extracted data: {extracted_data}"
+                        )
+                        return render(request, "expenses/add_expense.html", {"error": error_message})
 
-                # Save the extracted data to the database
-                expense = Expense.objects.create(
-                    name=name,
-                    category=category,
-                    amount=amount,
-                    date=date,
-                    photo=None  # Don't store the image in the database
-                )
+                except Exception as e:
+                    return render(request, "expenses/add_expense.html", {"error": f"Error processing the ticket: {str(e)}"})
+                finally:
+                    os.remove(r"C:\Users\romai\Documents\.1_ Romain\2_Esiea\PROJET\TODO\expense_project\djangotutorial\media\expense_photos/temp_image.jpg")
 
-                # Redirect to the expense list page
-                return redirect("view_expenses")
             except Exception as e:
-                return render(request, "expenses/add_expense.html", {"error": f"Error processing the ticket: {str(e)}"})
-            finally:
-                os.remove(r"C:\Users\romai\Documents\.1_ Romain\2_Esiea\PROJET\TODO\expense_project\djangotutorial\media\expense_photos/temp_image.jpg")
+                return render(request, "expenses/add_expense.html", {"error": f"An error occurred while processing the photo: {str(e)}"})
 
-        except Exception as e:
-            return render(request, "expenses/add_expense.html", {"error": f"An error occurred while processing the photo: {str(e)}"})
+        # Save the expense
+        expense = Expense.objects.create(
+            name=name,
+            category=category,
+            amount=amount,
+            date=expense_date,
+            photo=photo if photo else None  # Save photo if provided
+        )
+
+        # Redirect to the expense list page
+        return redirect("view_expenses")
 
     # Render the form initially if the method is GET
     return render(request, "expenses/add_expense.html", {"expense_categories": expense_categories})
@@ -82,6 +85,9 @@ def add_expense(request):
 
 def about(request):
     return render(request, "about.html")
+
+from matplotlib import pyplot as plt
+import pandas as pd
 
 def favorite_chart(request):
     start_date = request.GET.get('start_date')
@@ -109,9 +115,7 @@ def favorite_chart(request):
             expenses = Expense.objects.filter(date__gte=start_date_obj, date__lte=end_date_obj)
 
             chart_images['pie'] = generate_chart_image(generate_pie_chart, expenses, start_date, end_date)
-            #chart_images['bar'] = generate_chart_image(generate_bar_chart, expenses, start_date, end_date)
-            #chart_images['line'] = generate_chart_image(generate_line_chart, expenses, start_date, end_date)
-            #chart_images['donut'] = generate_chart_image(generate_donut_chart, expenses, start_date, end_date)
+            chart_images['bar'] = generate_chart_image(generate_bar_chart, expenses, start_date, end_date)
 
         except Exception as e:
             error_message = f"An error occurred while generating the charts: {e}"
@@ -195,3 +199,150 @@ def delete_income(request, income_id):
     income = get_object_or_404(Income, id=income_id)
     income.delete()
     return redirect('view_incomes')
+
+
+
+from django.utils import timezone
+
+from django.utils import timezone
+
+from django.utils import timezone
+from django.contrib import messages
+from .models import Budget
+from datetime import datetime
+
+def set_budget(request):
+    expense_categories = ["Food", "Housing", "Transportation", "Utilities", "Entertainment", "Travel", "Shopping", "Other"]
+    
+    if request.method == 'POST':
+        expense_category = request.POST.get('expense_category')
+        amount = request.POST.get('amount', None)
+        date_str = request.POST.get('date', None)
+        
+        # Validate inputs
+        if not amount:
+            messages.error(request, "Amount is required.")
+            return render(request, 'set_budget.html', {
+                'expense_categories': expense_categories,
+                'amount': amount,
+                'date': date_str,
+            })
+
+        try:
+            amount = float(amount)
+        except ValueError:
+            messages.error(request, "Invalid amount format. Please enter a valid number.")
+            return render(request, 'set_budget.html', {
+                'expense_categories': expense_categories,
+                'amount': amount,
+                'date': date_str,
+            })
+
+        # Validate and parse date
+        if not date_str:
+            date = timezone.now()
+        else:
+            try:
+                date = datetime.strptime(date_str, '%Y-%m')
+            except ValueError:
+                messages.error(request, "Invalid date format. Please enter a date in YYYY-MM format.")
+                return render(request, 'set_budget.html', {
+                    'expense_categories': expense_categories,
+                    'amount': amount,
+                    'date': date_str,
+                })
+
+        # Extract month and year
+        month = date.month
+        year = date.year
+
+        # Check if a budget already exists for the given category, month, and year
+        budget, created = Budget.objects.update_or_create(
+            category=expense_category,
+            month=month,
+            year=year,
+            defaults={'amount': amount, 'date': date}
+        )
+
+        if created:
+            messages.success(request, "Budget set successfully!")
+        else:
+            messages.success(request, "Budget updated successfully!")
+
+        return redirect('dashboard')  # Redirect to the dashboard or another page
+
+    # Render the form
+    return render(request, 'set_budget.html', {
+        'expense_categories': expense_categories,
+    })
+
+
+
+def delete_budget(request, budget_id):
+    budget = get_object_or_404(Budget, id=budget_id)
+    budget.delete()
+    messages.success(request, "Budget deleted successfully!")
+    return redirect('dashboard')
+
+
+from datetime import date
+from django.db.models import Sum
+
+def dashboard(request):
+    current_year = date.today().year
+    current_month_num = date.today().month
+    current_month_name = date.today().strftime("%B")
+
+    # List of all possible categories
+    all_categories = ["Food", "Housing", "Transportation", "Utilities", "Entertainment", "Travel", "Shopping", "Other"]
+
+    # Fetch budgets for the current month and year
+    budgets = Budget.objects.filter(year=current_year, month=current_month_num).order_by('category')
+
+    expenses = (
+        Expense.objects.filter(date__year=current_year, date__month=current_month_num)
+        .values('category')
+        .annotate(total=Sum('amount'))
+        .order_by('category')
+    )
+
+    # Prepare alerts and budget usage data
+    alerts = []
+    budget_usage = []
+
+    for budget in budgets:
+        # Get total spent for this category, default to 0 if not found
+        spent = next((e['total'] for e in expenses if e['category'] == budget.category), 0)
+        percentage_used = (spent / budget.amount) * 100 if budget.amount > 0 else 0
+
+        budget_usage.append({
+            'id': budget.id,  # Include the id attribute
+            'category': budget.category,
+            'limit': budget.amount,
+            'spent': spent,
+            'percentage_used': round(percentage_used, 2),
+        })
+
+        # 80% threshold alert
+        if spent >= budget.amount * 0.8:  
+            alerts.append(
+                f"⚠️ You have spent {spent} ({percentage_used:.1f}%) in {budget.category}, nearing your limit of {budget.amount}!"
+            )
+
+    # Determine categories without budgets
+    categories_with_budgets = [budget.category.lower().strip() for budget in budgets]
+    categories_without_budgets = [category for category in all_categories if category.lower().strip() not in categories_with_budgets]
+
+    # Pass the budget data and alerts to the template
+    return render(
+        request,
+        'dashboard.html',
+        {
+            'budgets': budget_usage,
+            'alerts': alerts,
+            'expenses': expenses,
+            'current_year': current_year,
+            'current_month': current_month_name,
+            'categories_without_budgets': categories_without_budgets,
+        },
+    )

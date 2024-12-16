@@ -2,8 +2,6 @@ from django.urls import path
 from django.conf.urls.static import static
 from django.conf import settings
 from . import views
-from django.contrib import admin
-from django.urls import path, include
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -15,6 +13,9 @@ urlpatterns = [
     path("view_incomes/", views.view_incomes, name="view_incomes"),
     path("incomes/add/", views.add_income, name="add_income"),
     path("incomes/<int:income_id>/delete/", views.delete_income, name="delete_income"),
+    path('set_budget/', views.set_budget, name='set_budget'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('delete_budget/<int:budget_id>/', views.delete_budget, name='delete_budget')
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
